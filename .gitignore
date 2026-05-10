@@ -1,0 +1,21 @@
+# Secrets
+.env
+credentials/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+
+# Logs & data
+logs/
+data/
+
+# IDE
+.vscode/
+.idea/
+*.DS_Store

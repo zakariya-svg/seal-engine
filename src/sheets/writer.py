@@ -1,4 +1,6 @@
-"""Google Sheets writer — appends lead rows to a target spreadsheet."""
+"""Google Sheets writer - appends lead rows to a target spreadsheet."""
+from __future__ import annotations
+
 import os
 from typing import Any
 

@@ -13,7 +13,8 @@ build/
 
 # Logs & data
 logs/
-data/
+data/*
+!data/*.example.txt
 
 # IDE
 .vscode/

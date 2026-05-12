@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.seal.leadgen.mhra_ema</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/zsh</string>
+        <string>-c</string>
+        <string>/Users/seal/lead-gen/.venv/bin/python3 -m src.scrapers.mhra_ema &amp;&amp; /Users/seal/lead-gen/.venv/bin/python3 -m src.aggregator.hot_leads</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/seal/lead-gen</string>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>7</integer>
+        <key>Minute</key>
+        <integer>45</integer>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/Users/seal/lead-gen/logs/launchd_mhra_ema.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/seal/lead-gen/logs/launchd_mhra_ema.err.log</string>
+</dict>
+</plist>

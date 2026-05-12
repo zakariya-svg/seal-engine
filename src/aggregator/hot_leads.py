@@ -137,6 +137,278 @@ def get_sheet() -> gspread.Spreadsheet:
     return gc.open_by_key(os.environ["LEADS_SPREADSHEET_ID"])
 
 
+def _hex_to_rgb(hex_color: str) -> dict[str, float]:
+    """Convert '#RRGGBB' to Sheets API color dict (0-1 floats)."""
+    h = hex_color.lstrip("#")
+    return {
+        "red": int(h[0:2], 16) / 255,
+        "green": int(h[2:4], 16) / 255,
+        "blue": int(h[4:6], 16) / 255,
+    }
+
+
+def _apply_formatting(
+    spreadsheet: gspread.Spreadsheet,
+    ws: gspread.Worksheet,
+    num_rows: int,
+) -> None:
+    """Apply all visual formatting in a single batch request."""
+    sheet_id = ws.id
+    last_row = num_rows + 1  # +1 for header
+    num_cols = len(COLUMNS)
+
+    # Column indices
+    COL_TS = 0        # timestamp
+    COL_SOURCE = 1    # source_tab
+    COL_COMPANY = 2   # company_name
+    COL_SUMMARY = 3   # signal_summary
+    COL_REASON = 4    # icp_reason
+    COL_LINK = 5      # link_url
+    COL_PRIORITY = 6  # priority
+
+    # Colors
+    NAVY = _hex_to_rgb("#1F4E79")
+    WHITE = _hex_to_rgb("#FFFFFF")
+    RED = _hex_to_rgb("#D32F2F")
+    AMBER = _hex_to_rgb("#FFB300")
+    LIGHT_GREY = _hex_to_rgb("#F5F5F5")
+
+    SOURCE_COLORS = {
+        "FDA Warning Letters": _hex_to_rgb("#FFCDD2"),
+        "Recalls": _hex_to_rgb("#F8BBD0"),
+        "FDA Inspections": _hex_to_rgb("#FFE0B2"),
+        "Clinical Triggers": _hex_to_rgb("#C8E6C9"),
+        "SEC Funding": _hex_to_rgb("#BBDEFB"),
+        "Gov Contracts": _hex_to_rgb("#E1BEE7"),
+        "Funding Signals": _hex_to_rgb("#B2DFDB"),
+        "News Signals": _hex_to_rgb("#FFF9C4"),
+    }
+
+    requests_list: list[dict[str, Any]] = []
+
+    # --- 1. Header row: navy bg, white bold text ---
+    requests_list.append({
+        "repeatCell": {
+            "range": {
+                "sheetId": sheet_id,
+                "startRowIndex": 0,
+                "endRowIndex": 1,
+                "startColumnIndex": 0,
+                "endColumnIndex": num_cols,
+            },
+            "cell": {
+                "userEnteredFormat": {
+                    "backgroundColor": NAVY,
+                    "textFormat": {
+                        "foregroundColor": WHITE,
+                        "bold": True,
+                        "fontSize": 10,
+                    },
+                    "horizontalAlignment": "CENTER",
+                    "verticalAlignment": "MIDDLE",
+                }
+            },
+            "fields": "userEnteredFormat(backgroundColor,textFormat,horizontalAlignment,verticalAlignment)",
+        }
+    })
+
+    # --- 7. Freeze first row ---
+    requests_list.append({
+        "updateSheetProperties": {
+            "properties": {
+                "sheetId": sheet_id,
+                "gridProperties": {"frozenRowCount": 1},
+            },
+            "fields": "gridProperties.frozenRowCount",
+        }
+    })
+
+    # --- 6. Auto-filter on header row ---
+    requests_list.append({
+        "setBasicFilter": {
+            "filter": {
+                "range": {
+                    "sheetId": sheet_id,
+                    "startRowIndex": 0,
+                    "endRowIndex": last_row,
+                    "startColumnIndex": 0,
+                    "endColumnIndex": num_cols,
+                }
+            }
+        }
+    })
+
+    # --- 2a. Conditional formatting: URGENT rows (priority column) ---
+    requests_list.append({
+        "addConditionalFormatRule": {
+            "rule": {
+                "ranges": [{
+                    "sheetId": sheet_id,
+                    "startRowIndex": 1,
+                    "endRowIndex": last_row,
+                    "startColumnIndex": 0,
+                    "endColumnIndex": num_cols,
+                }],
+                "booleanRule": {
+                    "condition": {
+                        "type": "CUSTOM_FORMULA",
+                        "values": [{"userEnteredValue": f'=$G2="URGENT"'}],
+                    },
+                    "format": {
+                        "backgroundColor": RED,
+                        "textFormat": {"foregroundColor": WHITE, "bold": True},
+                    },
+                },
+            },
+            "index": 0,
+        }
+    })
+
+    # --- 2b. Conditional formatting: High rows ---
+    requests_list.append({
+        "addConditionalFormatRule": {
+            "rule": {
+                "ranges": [{
+                    "sheetId": sheet_id,
+                    "startRowIndex": 1,
+                    "endRowIndex": last_row,
+                    "startColumnIndex": 0,
+                    "endColumnIndex": num_cols,
+                }],
+                "booleanRule": {
+                    "condition": {
+                        "type": "CUSTOM_FORMULA",
+                        "values": [{"userEnteredValue": f'=$G2="High"'}],
+                    },
+                    "format": {
+                        "backgroundColor": AMBER,
+                    },
+                },
+            },
+            "index": 1,
+        }
+    })
+
+    # --- 2c. Conditional formatting: Standard rows - alternating white/grey ---
+    requests_list.append({
+        "addConditionalFormatRule": {
+            "rule": {
+                "ranges": [{
+                    "sheetId": sheet_id,
+                    "startRowIndex": 1,
+                    "endRowIndex": last_row,
+                    "startColumnIndex": 0,
+                    "endColumnIndex": num_cols,
+                }],
+                "booleanRule": {
+                    "condition": {
+                        "type": "CUSTOM_FORMULA",
+                        "values": [{"userEnteredValue": '=AND($G2="Standard",ISEVEN(ROW()))'}],
+                    },
+                    "format": {
+                        "backgroundColor": LIGHT_GREY,
+                    },
+                },
+            },
+            "index": 2,
+        }
+    })
+
+    # --- 3. Conditional formatting: source_tab column colors ---
+    for idx, (source_name, color) in enumerate(SOURCE_COLORS.items()):
+        requests_list.append({
+            "addConditionalFormatRule": {
+                "rule": {
+                    "ranges": [{
+                        "sheetId": sheet_id,
+                        "startRowIndex": 1,
+                        "endRowIndex": last_row,
+                        "startColumnIndex": COL_SOURCE,
+                        "endColumnIndex": COL_SOURCE + 1,
+                    }],
+                    "booleanRule": {
+                        "condition": {
+                            "type": "TEXT_EQ",
+                            "values": [{"userEnteredValue": source_name}],
+                        },
+                        "format": {
+                            "backgroundColor": color,
+                        },
+                    },
+                },
+                "index": 3 + idx,
+            }
+        })
+
+    # --- 4. Bold the company_name column ---
+    requests_list.append({
+        "repeatCell": {
+            "range": {
+                "sheetId": sheet_id,
+                "startRowIndex": 1,
+                "endRowIndex": last_row,
+                "startColumnIndex": COL_COMPANY,
+                "endColumnIndex": COL_COMPANY + 1,
+            },
+            "cell": {
+                "userEnteredFormat": {
+                    "textFormat": {"bold": True},
+                }
+            },
+            "fields": "userEnteredFormat.textFormat.bold",
+        }
+    })
+
+    # --- 5. Column widths ---
+    col_widths = {
+        COL_TS: 110,
+        COL_SOURCE: 130,
+        COL_COMPANY: 220,
+        COL_SUMMARY: 400,
+        COL_REASON: 280,
+        COL_LINK: 200,
+        COL_PRIORITY: 90,
+    }
+    for col_idx, width in col_widths.items():
+        requests_list.append({
+            "updateDimensionProperties": {
+                "range": {
+                    "sheetId": sheet_id,
+                    "dimension": "COLUMNS",
+                    "startIndex": col_idx,
+                    "endIndex": col_idx + 1,
+                },
+                "properties": {"pixelSize": width},
+                "fields": "pixelSize",
+            }
+        })
+
+    # --- 5b. Text wrap on signal_summary and icp_reason ---
+    for col_idx in [COL_SUMMARY, COL_REASON]:
+        requests_list.append({
+            "repeatCell": {
+                "range": {
+                    "sheetId": sheet_id,
+                    "startRowIndex": 1,
+                    "endRowIndex": last_row,
+                    "startColumnIndex": col_idx,
+                    "endColumnIndex": col_idx + 1,
+                },
+                "cell": {
+                    "userEnteredFormat": {
+                        "wrapStrategy": "WRAP",
+                    }
+                },
+                "fields": "userEnteredFormat.wrapStrategy",
+            }
+        })
+
+    # Execute all in one batch
+    spreadsheet.batch_update({"requests": requests_list})
+    logger.info("Applied formatting to '%s' tab (%d requests).",
+                SHEET_TAB, len(requests_list))
+
+
 def run() -> None:
     from dotenv import load_dotenv
     load_dotenv(PROJECT_ROOT / ".env")
@@ -210,6 +482,9 @@ def run() -> None:
 
     rows_data = [[lead[col] for col in COLUMNS] for lead in hot_leads]
     ws.append_rows(rows_data, value_input_option="USER_ENTERED")
+
+    # Apply formatting
+    _apply_formatting(spreadsheet, ws, len(hot_leads))
 
     # Count by priority
     priorities = {}

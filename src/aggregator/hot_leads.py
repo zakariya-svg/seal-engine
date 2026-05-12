@@ -75,6 +75,11 @@ TAB_CONFIG: dict[str, dict[str, Any]] = {
         "summary_fields": ["sub_agency", "award_amount", "description", "seal_relevance"],
         "link": "award_url",
     },
+    "MHRA EMA Signals": {
+        "company": "company_name",
+        "summary_fields": ["regulator", "finding_type", "violation_summary", "site_location", "country"],
+        "link": "source_url",
+    },
 }
 
 
@@ -101,12 +106,16 @@ def _build_summary(row: dict[str, str], fields: list[str]) -> str:
 
 def _assign_priority(source_tab: str, row: dict[str, str]) -> str:
     """Assign priority based on source and content."""
-    # URGENT: FDA Warning Letters or Class I Recalls
+    # URGENT: FDA Warning Letters, Class I Recalls, or EudraGMDP Non-Compliance Reports
     if source_tab == "FDA Warning Letters":
         return "URGENT"
     if source_tab == "Recalls":
         classification = row.get("classification", "")
         if "Class I" in classification and "Class II" not in classification:
+            return "URGENT"
+    if source_tab == "MHRA EMA Signals":
+        finding_type = str(row.get("finding_type", "")).lower()
+        if "non-compliance" in finding_type:
             return "URGENT"
 
     # High: Series A/B funding rounds or senior quality hires
@@ -182,6 +191,7 @@ def _apply_formatting(
         "Gov Contracts": _hex_to_rgb("#E1BEE7"),
         "Funding Signals": _hex_to_rgb("#B2DFDB"),
         "News Signals": _hex_to_rgb("#FFF9C4"),
+        "MHRA EMA Signals": _hex_to_rgb("#D1C4E9"),
     }
 
     requests_list: list[dict[str, Any]] = []

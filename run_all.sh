@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Run all Seal lead-gen scrapers sequentially, then refresh Hot Leads.
+# Run all lead-gen scrapers sequentially, then refresh Hot Leads.
 # Usage: ./run_all.sh
 
 set -o pipefail
@@ -41,7 +41,7 @@ run_one() {
     timings+=("${elapsed}s")
 }
 
-echo "=== Seal Lead-Gen Full Run — $(date '+%Y-%m-%d %H:%M') ===" | tee "$LOG_FILE"
+echo "=== Lead-Gen Full Run — $(date '+%Y-%m-%d %H:%M') ===" | tee "$LOG_FILE"
 
 for entry in "${scrapers[@]}"; do
     IFS='|' read -r name module <<< "$entry"

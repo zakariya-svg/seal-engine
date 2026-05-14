@@ -1,5 +1,5 @@
 """
-Clinical Trials scraper for Seal lead-gen.
+Clinical Trials scraper for life sciences lead-gen.
 
 Queries the ClinicalTrials.gov v2 API for Phase 2/3 industry-sponsored
 studies updated in the last 7 days, matching conditions relevant to
@@ -154,9 +154,9 @@ def _parse_study(study: dict[str, Any]) -> dict[str, str] | None:
 def ai_enrich(client: Anthropic, model: str, record: dict[str, str]) -> dict[str, str]:
     """Assess ICP fit and manufacturing scaling note."""
     prompt = (
-        "You are a sales intelligence analyst for Seal, a life-sciences GxP platform "
+        "You are a sales intelligence analyst for a life-sciences GxP platform company "
         "(eQMS, document control, training management, CAPA, batch records). "
-        "Seal's ICP is: biotech, pharma, med device, or CDMO companies with roughly "
+        "The ICP is: biotech, pharma, med device, or CDMO companies with roughly "
         "8-200 employees.\n\n"
         f"Sponsor: {record['sponsor']}\n"
         f"Study: {record['study_title']}\n"

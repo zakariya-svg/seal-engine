@@ -1,5 +1,5 @@
 """
-SEC Form D scraper for Seal lead-gen.
+SEC Form D scraper for life sciences lead-gen.
 
 Searches SEC EDGAR full-text search for Form D filings (private funding
 disclosures) from the last 30 days in life-sciences industries. Fetches
@@ -34,7 +34,7 @@ SEEN_PATH = PROJECT_ROOT / "data" / "seen_form_d.json"
 # SEC EDGAR
 EFTS_URL = "https://efts.sec.gov/LATEST/search-index"
 SEC_ARCHIVES = "https://www.sec.gov/Archives/edgar/data"
-USER_AGENT = "Seal Lead-Gen zak@seal.run"
+USER_AGENT = "LifeSci-LeadGen admin@example.com"
 LOOKBACK_DAYS = 30
 
 # Search terms that match life-sciences Form D filings in EFTS full-text
@@ -64,7 +64,7 @@ SHEET_TAB = "SEC Funding"
 COLUMNS = [
     "timestamp", "company_name", "state", "industry_naics",
     "amount_raised", "total_offering", "filing_date", "filing_url",
-    "seal_relevance", "icp_score", "icp_reason",
+    "platform_relevance", "icp_score", "icp_reason",
 ]
 
 
@@ -258,15 +258,15 @@ def fetch_filings() -> list[dict[str, str]]:
 
 
 def ai_enrich(client: Anthropic, model: str, record: dict[str, str]) -> dict[str, str]:
-    """Assess ICP fit and Seal relevance for a Form D filing."""
+    """Assess ICP fit and platform relevance for a Form D filing."""
     amount_str = _format_amount(record["amount_raised"])
     offering_str = _format_amount(record["total_offering"])
     location = f"{record.get('city', '')}, {record['state']}" if record.get("city") else record["state"]
 
     prompt = (
-        "You are a sales intelligence analyst for Seal, a life-sciences GxP platform "
+        "You are a sales intelligence analyst for a life-sciences GxP platform company "
         "(eQMS, document control, training management, CAPA, batch records). "
-        "Seal's ICP is: biotech, pharma, med device, or CDMO companies with roughly "
+        "The ICP is: biotech, pharma, med device, or CDMO companies with roughly "
         "8-200 employees.\n\n"
         f"Company: {record['company_name']}\n"
         f"Location: {location}\n"
@@ -282,13 +282,13 @@ def ai_enrich(client: Anthropic, model: str, record: dict[str, str]) -> dict[str
         "- Skip: investment funds, holding companies, massive pharma (Pfizer, Lilly, "
         "J&J, Roche, Novartis, Merck, AbbVie, AstraZeneca, GSK, Sanofi, Amgen, BMS, "
         "Gilead, etc.), or clearly non-life-sciences companies.\n\n"
-        "2. Write ONE sentence on why this funding event is relevant to Seal — e.g., "
+        "2. Write ONE sentence on why this funding event is relevant to a GxP platform vendor — e.g., "
         "the company is likely building out quality systems, scaling manufacturing, "
         "or preparing for regulatory submissions.\n\n"
         "Respond in this exact format:\n"
         "ICP Score: <High|Medium|Low|Skip>\n"
         "ICP Reason: <short explanation>\n"
-        "Seal Relevance: <one sentence>"
+        "Platform Relevance: <one sentence>"
     )
     msg = client.messages.create(
         model=model,
@@ -296,14 +296,14 @@ def ai_enrich(client: Anthropic, model: str, record: dict[str, str]) -> dict[str
         messages=[{"role": "user", "content": prompt}],
     )
     text = msg.content[0].text.strip()
-    result = {"icp_score": "Medium", "icp_reason": "", "seal_relevance": ""}
+    result = {"icp_score": "Medium", "icp_reason": "", "platform_relevance": ""}
     for line in text.split("\n"):
         if line.startswith("ICP Score:"):
             result["icp_score"] = line.split(":", 1)[1].strip()
         elif line.startswith("ICP Reason:"):
             result["icp_reason"] = line.split(":", 1)[1].strip()
-        elif line.startswith("Seal Relevance:"):
-            result["seal_relevance"] = line.split(":", 1)[1].strip()
+        elif line.startswith("Platform Relevance:"):
+            result["platform_relevance"] = line.split(":", 1)[1].strip()
     return result
 
 
@@ -373,7 +373,7 @@ def run() -> None:
         except Exception as e:
             logger.error("  AI enrichment failed: %s", e)
             enrichment = {"icp_score": "Medium", "icp_reason": "",
-                          "seal_relevance": ""}
+                          "platform_relevance": ""}
             time.sleep(2)
 
         row = {
@@ -385,7 +385,7 @@ def run() -> None:
             "total_offering": _format_amount(rec["total_offering"]),
             "filing_date": rec["filing_date"],
             "filing_url": rec["filing_url"],
-            "seal_relevance": enrichment["seal_relevance"],
+            "platform_relevance": enrichment["platform_relevance"],
             "icp_score": enrichment["icp_score"],
             "icp_reason": enrichment["icp_reason"],
         }

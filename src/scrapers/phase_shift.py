@@ -1,4 +1,4 @@
-"""Seal Phase-Shift Scraper.
+"""Phase-Shift Scraper.
 
 Finds life sciences companies showing "phase-shift" buying signals: funding,
 clinical progress, manufacturing expansion, compliance hiring, inspection events,
@@ -27,7 +27,7 @@ logger = get_logger(__name__)
 
 
 DEFAULT_TIMEOUT_SECONDS = 20
-DEFAULT_USER_AGENT = "SealPhaseShiftScraper/0.1 (+https://github.com/zakariya-svg/seal-engine)"
+DEFAULT_USER_AGENT = "PhaseShiftScraper/0.1"
 
 PHASE_SHIFT_PATTERNS: dict[str, list[str]] = {
     "funding": [
@@ -105,7 +105,7 @@ class PhaseShiftSignal:
             "contact_title": "",
             "contact_email": "",
             "linkedin_url": "",
-            "source": "seal_phase_shift_scraper",
+            "source": "phase_shift_scraper",
             "score": self.score,
             "notes": self.notes,
             "created_at": self.detected_at,
@@ -305,7 +305,7 @@ def write_csv(signals: list[PhaseShiftSignal], output_path: str) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Find GxP phase-shift signals for Seal lead generation.")
+    parser = argparse.ArgumentParser(description="Find GxP phase-shift signals for life sciences lead generation.")
     parser.add_argument("--url", action="append", help="Source URL to inspect. May be repeated.")
     parser.add_argument("--source-file", help="Text file with one source URL per line.")
     parser.add_argument("--csv", default="data/phase_shift_signals.csv", help="CSV output path.")

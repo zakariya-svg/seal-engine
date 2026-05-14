@@ -1,5 +1,5 @@
 """
-Funding News scraper for Seal lead-gen.
+Funding News scraper for life sciences lead-gen.
 
 Pulls from life-sciences RSS feeds, filters for funding-specific keywords
 (Series A/B/C, raised, IPO, etc.), enriches with Anthropic AI to extract
@@ -67,7 +67,7 @@ SHEET_TAB = "Funding Signals"
 COLUMNS = [
     "timestamp", "source", "headline", "link", "company_name",
     "round_type", "amount", "lead_investor", "use_of_funds",
-    "seal_relevance", "icp_score", "icp_reason",
+    "platform_relevance", "icp_score", "icp_reason",
 ]
 
 
@@ -114,9 +114,9 @@ def ai_enrich(client: Anthropic, model: str, article: dict[str, str],
               matched_kw: list[str]) -> dict[str, str]:
     """Extract funding details and assess ICP fit."""
     prompt = (
-        "You are a sales intelligence analyst for Seal, a life-sciences GxP platform "
+        "You are a sales intelligence analyst for a life-sciences GxP platform company "
         "(eQMS, document control, training management, CAPA, batch records). "
-        "Seal's ICP is: biotech, pharma, med device, or CDMO companies with roughly "
+        "The ICP is: biotech, pharma, med device, or CDMO companies with roughly "
         "8-200 employees.\n\n"
         "Given this funding news article, extract the following:\n"
         "1. Company Name: the company that received funding (not the investor).\n"
@@ -124,7 +124,7 @@ def ai_enrich(client: Anthropic, model: str, article: dict[str, str],
         "3. Amount: the dollar amount raised (e.g., $50M). Write 'Undisclosed' if not stated.\n"
         "4. Lead Investor: the lead investor if mentioned. Write 'Not stated' otherwise.\n"
         "5. Use of Funds: ONE sentence on what the funding will be used for based on the article.\n"
-        "6. Seal Relevance: ONE sentence on why this funding round means the company "
+        "6. Platform Relevance: ONE sentence on why this funding round means the company "
         "likely needs GMP/quality systems (e.g., scaling manufacturing, advancing to "
         "clinical trials, building out CMC, regulatory submissions, etc.).\n"
         "7. ICP Score:\n"
@@ -144,7 +144,7 @@ def ai_enrich(client: Anthropic, model: str, article: dict[str, str],
         "Amount: <amount>\n"
         "Lead Investor: <name or Not stated>\n"
         "Use of Funds: <one sentence>\n"
-        "Seal Relevance: <one sentence>\n"
+        "Platform Relevance: <one sentence>\n"
         "ICP Score: <High|Medium|Low|Skip>\n"
         "ICP Reason: <short explanation>"
     )
@@ -160,7 +160,7 @@ def ai_enrich(client: Anthropic, model: str, article: dict[str, str],
         "amount": "",
         "lead_investor": "",
         "use_of_funds": "",
-        "seal_relevance": "",
+        "platform_relevance": "",
         "icp_score": "Medium",
         "icp_reason": "",
     }
@@ -170,7 +170,7 @@ def ai_enrich(client: Anthropic, model: str, article: dict[str, str],
         "Amount:": "amount",
         "Lead Investor:": "lead_investor",
         "Use of Funds:": "use_of_funds",
-        "Seal Relevance:": "seal_relevance",
+        "Platform Relevance:": "platform_relevance",
         "ICP Score:": "icp_score",
         "ICP Reason:": "icp_reason",
     }
@@ -247,7 +247,7 @@ def run() -> None:
             logger.error("  AI enrichment failed: %s", e)
             enrichment = {
                 "company_name": "Unknown", "round_type": "", "amount": "",
-                "lead_investor": "", "use_of_funds": "", "seal_relevance": "",
+                "lead_investor": "", "use_of_funds": "", "platform_relevance": "",
                 "icp_score": "Medium", "icp_reason": "",
             }
             time.sleep(2)
@@ -262,7 +262,7 @@ def run() -> None:
             "amount": enrichment["amount"],
             "lead_investor": enrichment["lead_investor"],
             "use_of_funds": enrichment["use_of_funds"],
-            "seal_relevance": enrichment["seal_relevance"],
+            "platform_relevance": enrichment["platform_relevance"],
             "icp_score": enrichment["icp_score"],
             "icp_reason": enrichment["icp_reason"],
         }

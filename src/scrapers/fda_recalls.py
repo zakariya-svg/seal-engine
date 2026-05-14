@@ -1,9 +1,9 @@
 """
-FDA Recalls scraper for Seal lead-gen.
+FDA Recalls scraper for life sciences lead-gen.
 
 Queries the openFDA enforcement endpoints for Class I and Class II drug
 and device recalls from the last 30 days. Enriches with Anthropic AI for
-ICP scoring and Seal relevance, then writes to the 'Recalls' Google Sheet tab.
+ICP scoring and platform relevance, then writes to the 'Recalls' Google Sheet tab.
 """
 from __future__ import annotations
 
@@ -46,7 +46,7 @@ SHEET_TAB = "Recalls"
 COLUMNS = [
     "timestamp", "company_name", "product_description", "classification",
     "reason", "recall_date", "city", "state", "source",
-    "seal_relevance", "icp_score", "icp_reason",
+    "platform_relevance", "icp_score", "icp_reason",
 ]
 
 
@@ -126,12 +126,12 @@ def fetch_recalls(source: str, url: str) -> list[dict[str, str]]:
 
 
 def ai_enrich(client: Anthropic, model: str, record: dict[str, str]) -> dict[str, str]:
-    """Assess ICP fit and Seal relevance for a recall."""
+    """Assess ICP fit and platform relevance for a recall."""
     location = f"{record['city']}, {record['state']}" if record["city"] else "Unknown"
     prompt = (
-        "You are a sales intelligence analyst for Seal, a life-sciences GxP platform "
+        "You are a sales intelligence analyst for a life-sciences GxP platform company "
         "(eQMS, document control, training management, CAPA, batch records). "
-        "Seal's ICP is: biotech, pharma, med device, or CDMO companies with roughly "
+        "The ICP is: biotech, pharma, med device, or CDMO companies with roughly "
         "8-200 employees.\n\n"
         f"Company: {record['company_name']}\n"
         f"Location: {location}\n"
@@ -147,13 +147,13 @@ def ai_enrich(client: Anthropic, model: str, record: dict[str, str]) -> dict[str
         "AbbVie, AstraZeneca, GSK, Sanofi, Amgen, BMS, Gilead, Medtronic, Abbott, "
         "Stryker, BD, Boston Scientific, Baxter, Catalent, Lonza, Thermo Fisher, "
         "Becton Dickinson, 3M, Siemens Healthineers, etc.).\n\n"
-        "2. Write ONE sentence on why this recall is relevant to Seal — e.g., the company "
+        "2. Write ONE sentence on why this recall is relevant to a GxP platform vendor — e.g., the company "
         "likely needs better CAPA management, document control, or quality system "
         "improvements after this recall.\n\n"
         "Respond in this exact format:\n"
         "ICP Score: <High|Medium|Low|Skip>\n"
         "ICP Reason: <short explanation>\n"
-        "Seal Relevance: <one sentence>"
+        "Platform Relevance: <one sentence>"
     )
     msg = client.messages.create(
         model=model,
@@ -161,14 +161,14 @@ def ai_enrich(client: Anthropic, model: str, record: dict[str, str]) -> dict[str
         messages=[{"role": "user", "content": prompt}],
     )
     text = msg.content[0].text.strip()
-    result = {"icp_score": "Medium", "icp_reason": "", "seal_relevance": ""}
+    result = {"icp_score": "Medium", "icp_reason": "", "platform_relevance": ""}
     for line in text.split("\n"):
         if line.startswith("ICP Score:"):
             result["icp_score"] = line.split(":", 1)[1].strip()
         elif line.startswith("ICP Reason:"):
             result["icp_reason"] = line.split(":", 1)[1].strip()
-        elif line.startswith("Seal Relevance:"):
-            result["seal_relevance"] = line.split(":", 1)[1].strip()
+        elif line.startswith("Platform Relevance:"):
+            result["platform_relevance"] = line.split(":", 1)[1].strip()
     return result
 
 
@@ -244,7 +244,7 @@ def run() -> None:
         except Exception as e:
             logger.error("  AI enrichment failed: %s", e)
             enrichment = {"icp_score": "Medium", "icp_reason": "",
-                          "seal_relevance": ""}
+                          "platform_relevance": ""}
             time.sleep(2)
 
         row = {
@@ -257,7 +257,7 @@ def run() -> None:
             "city": rec["city"],
             "state": rec["state"],
             "source": rec["source"],
-            "seal_relevance": enrichment["seal_relevance"],
+            "platform_relevance": enrichment["platform_relevance"],
             "icp_score": enrichment["icp_score"],
             "icp_reason": enrichment["icp_reason"],
         }

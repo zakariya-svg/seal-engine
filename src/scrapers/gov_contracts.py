@@ -1,5 +1,5 @@
 """
-Government Contracts scraper for Seal lead-gen.
+Government Contracts scraper for life sciences lead-gen.
 
 Queries the USASpending.gov API for federal contract awards to
 life-sciences companies from HHS (BARDA/ASPR, NIH, FDA) and DoD
@@ -71,7 +71,7 @@ SHEET_TAB = "Gov Contracts"
 COLUMNS = [
     "timestamp", "company_name", "agency", "sub_agency", "award_amount",
     "award_type", "description", "period_of_performance", "city", "state",
-    "award_url", "seal_relevance", "icp_score", "icp_reason",
+    "award_url", "platform_relevance", "icp_score", "icp_reason",
 ]
 
 
@@ -188,12 +188,12 @@ def _parse_award(rec: dict[str, Any]) -> dict[str, str]:
 
 
 def ai_enrich(client: Anthropic, model: str, record: dict[str, str]) -> dict[str, str]:
-    """Assess ICP fit and Seal relevance for a government contract."""
+    """Assess ICP fit and platform relevance for a government contract."""
     location = f"{record['city']}, {record['state']}" if record["city"] else "Unknown"
     prompt = (
-        "You are a sales intelligence analyst for Seal, a life-sciences GxP platform "
+        "You are a sales intelligence analyst for a life-sciences GxP platform company "
         "(eQMS, document control, training management, CAPA, batch records). "
-        "Seal's ICP is: biotech, pharma, med device, or CDMO companies with roughly "
+        "The ICP is: biotech, pharma, med device, or CDMO companies with roughly "
         "8-200 employees.\n\n"
         f"Company: {record['company_name']}\n"
         f"Location: {location}\n"
@@ -217,7 +217,7 @@ def ai_enrich(client: Anthropic, model: str, record: dict[str, str]) -> dict[str
         "Respond in this exact format:\n"
         "ICP Score: <High|Medium|Low|Skip>\n"
         "ICP Reason: <short explanation>\n"
-        "Seal Relevance: <one sentence>"
+        "Platform Relevance: <one sentence>"
     )
     msg = client.messages.create(
         model=model,
@@ -225,14 +225,14 @@ def ai_enrich(client: Anthropic, model: str, record: dict[str, str]) -> dict[str
         messages=[{"role": "user", "content": prompt}],
     )
     text = msg.content[0].text.strip()
-    result = {"icp_score": "Medium", "icp_reason": "", "seal_relevance": ""}
+    result = {"icp_score": "Medium", "icp_reason": "", "platform_relevance": ""}
     for line in text.split("\n"):
         if line.startswith("ICP Score:"):
             result["icp_score"] = line.split(":", 1)[1].strip()
         elif line.startswith("ICP Reason:"):
             result["icp_reason"] = line.split(":", 1)[1].strip()
-        elif line.startswith("Seal Relevance:"):
-            result["seal_relevance"] = line.split(":", 1)[1].strip()
+        elif line.startswith("Platform Relevance:"):
+            result["platform_relevance"] = line.split(":", 1)[1].strip()
     return result
 
 
@@ -312,7 +312,7 @@ def run() -> None:
         except Exception as e:
             logger.error("  AI enrichment failed: %s", e)
             enrichment = {"icp_score": "Medium", "icp_reason": "",
-                          "seal_relevance": ""}
+                          "platform_relevance": ""}
             time.sleep(2)
 
         row = {
@@ -327,7 +327,7 @@ def run() -> None:
             "city": rec["city"],
             "state": rec["state"],
             "award_url": rec["award_url"],
-            "seal_relevance": enrichment["seal_relevance"],
+            "platform_relevance": enrichment["platform_relevance"],
             "icp_score": enrichment["icp_score"],
             "icp_reason": enrichment["icp_reason"],
         }

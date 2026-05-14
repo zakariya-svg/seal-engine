@@ -1,8 +1,8 @@
 """
-FDA Warning Letters scraper for Seal lead-gen.
+FDA Warning Letters scraper for life sciences lead-gen.
 
 Scrapes the FDA warning letters page, filters to CDER/CBER/CDRH,
-enriches with Anthropic AI (violation summary, Seal relevance, ICP fit),
+enriches with Anthropic AI (violation summary, platform relevance, ICP fit),
 dedupes, and writes to the 'FDA Warning Letters' Google Sheet tab.
 """
 from __future__ import annotations
@@ -64,7 +64,7 @@ SCOPES = [
 SHEET_TAB = "FDA Warning Letters"
 COLUMNS = [
     "timestamp", "company_name", "posted_date", "issuing_office",
-    "subject", "violation_summary", "seal_relevance",
+    "subject", "violation_summary", "platform_relevance",
     "icp_score", "icp_reason", "letter_url",
 ]
 
@@ -158,15 +158,15 @@ def scrape_letter_body(url: str) -> str:
 def ai_enrich(
     client: Anthropic, model: str, letter: dict[str, str], body_excerpt: str
 ) -> dict[str, str]:
-    """Use Anthropic to summarise the violation, assess Seal relevance, and score ICP fit."""
+    """Use Anthropic to summarise the violation, assess platform relevance, and score ICP fit."""
     prompt = (
-        "You are a sales intelligence analyst for Seal, a life-sciences GxP platform "
+        "You are a sales intelligence analyst for a life-sciences GxP platform company "
         "(eQMS, document control, training management, CAPA, batch records). "
-        "Seal's ICP is: biotech, pharma, med device, or CDMO companies with roughly "
+        "The ICP is: biotech, pharma, med device, or CDMO companies with roughly "
         "8-200 employees.\n\n"
         "Given this FDA warning letter, provide:\n"
         "1. A 2-sentence summary of the violation.\n"
-        "2. ONE sentence on why the company might need Seal's platform.\n"
+        "2. ONE sentence on why the company might need a GxP platform.\n"
         "3. An ICP fit score: 'High', 'Medium', 'Low', or 'Skip'.\n"
         "   - High: small-to-mid pharma/biotech/device/CDMO, likely 8-200 employees.\n"
         "   - Medium: unclear size, or mid-size company in life sciences.\n"
@@ -182,7 +182,7 @@ def ai_enrich(
         f"Letter body (first ~1500 chars): {body_excerpt[:1000]}\n\n"
         "Respond in this exact format (no extra text):\n"
         "Violation Summary: <2 sentences>\n"
-        "Seal Relevance: <1 sentence>\n"
+        "Platform Relevance: <1 sentence>\n"
         "ICP Score: <High|Medium|Low|Skip>\n"
         "ICP Reason: <short explanation>"
     )
@@ -194,15 +194,15 @@ def ai_enrich(
     text = msg.content[0].text.strip()
     result = {
         "violation_summary": "",
-        "seal_relevance": "",
+        "platform_relevance": "",
         "icp_score": "Medium",
         "icp_reason": "",
     }
     for line in text.split("\n"):
         if line.startswith("Violation Summary:"):
             result["violation_summary"] = line.split(":", 1)[1].strip()
-        elif line.startswith("Seal Relevance:"):
-            result["seal_relevance"] = line.split(":", 1)[1].strip()
+        elif line.startswith("Platform Relevance:"):
+            result["platform_relevance"] = line.split(":", 1)[1].strip()
         elif line.startswith("ICP Score:"):
             result["icp_score"] = line.split(":", 1)[1].strip()
         elif line.startswith("ICP Reason:"):
@@ -279,7 +279,7 @@ def run() -> None:
                 logger.error("  AI enrichment failed: %s", e)
                 enrichment = {
                     "violation_summary": "",
-                    "seal_relevance": "",
+                    "platform_relevance": "",
                     "icp_score": "Medium",
                     "icp_reason": "",
                 }
@@ -292,7 +292,7 @@ def run() -> None:
                 "issuing_office": letter["issuing_office"],
                 "subject": letter["subject"],
                 "violation_summary": enrichment["violation_summary"],
-                "seal_relevance": enrichment["seal_relevance"],
+                "platform_relevance": enrichment["platform_relevance"],
                 "icp_score": enrichment["icp_score"],
                 "icp_reason": enrichment["icp_reason"],
                 "letter_url": letter["letter_url"],

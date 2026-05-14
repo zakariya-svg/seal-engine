@@ -1,12 +1,12 @@
 """
-MHRA/EMA regulatory enforcement scraper for Seal lead-gen.
+MHRA/EMA regulatory enforcement scraper for life sciences lead-gen.
 
 Monitors UK and EU regulatory signals from three sources:
 1. EudraGMDP — GMP non-compliance reports from EU inspections
 2. MHRA Drug/Device Alerts — Class 2/3/4 defect notifications and recalls
 3. MHRA Drug Safety Update — Regulatory actions and safety warnings
 
-Enriches with Anthropic AI for violation summary, Seal relevance, and ICP
+Enriches with Anthropic AI for violation summary, platform relevance, and ICP
 scoring. Writes to the 'MHRA EMA Signals' Google Sheet tab.
 """
 from __future__ import annotations
@@ -49,7 +49,7 @@ SCOPES = [
 SHEET_TAB = "MHRA EMA Signals"
 COLUMNS = [
     "timestamp", "company_name", "country", "regulator", "finding_date",
-    "finding_type", "site_location", "violation_summary", "seal_relevance",
+    "finding_type", "site_location", "violation_summary", "platform_relevance",
     "icp_score", "icp_reason", "source_url",
 ]
 
@@ -473,12 +473,12 @@ def fetch_mhra_safety() -> list[dict[str, str]]:
 # -----------------------------------------------------------------------
 
 def ai_enrich(client: Anthropic, model: str, record: dict[str, str]) -> dict[str, str]:
-    """Summarize violation, assess ICP fit, and Seal relevance."""
+    """Summarize violation, assess ICP fit, and platform relevance."""
     prompt = (
-        "You are a sales intelligence analyst for Seal, a life-sciences GxP platform "
+        "You are a sales intelligence analyst for a life-sciences GxP platform company "
         "(eQMS, document control, training management, CAPA, batch records). "
-        "Seal's ICP is: biotech, pharma, med device, or CDMO companies with roughly "
-        "8-200 employees. Seal specifically targets companies in the UK, Ireland, "
+        "The ICP is: biotech, pharma, med device, or CDMO companies with roughly "
+        "8-200 employees. The target market includes companies in the UK, Ireland, "
         "Germany, France, Netherlands, Switzerland, Denmark, Sweden, Italy, Spain.\n\n"
         f"Company/Site: {record['company_name']}\n"
         f"Country: {record['country']}\n"
@@ -488,7 +488,7 @@ def ai_enrich(client: Anthropic, model: str, record: dict[str, str]) -> dict[str
         f"Location: {record['site_location']}\n"
         f"Raw Details: {record['raw_summary'][:400]}\n\n"
         "1. Write a 2-sentence summary of the violation/finding.\n"
-        "2. Write ONE sentence on why this is relevant to Seal — e.g., the company "
+        "2. Write ONE sentence on why this is relevant to a GxP platform vendor — e.g., the company "
         "needs better CAPA management, document control, or quality system improvements.\n"
         "3. Assess ICP fit:\n"
         "   - High: small-to-mid pharma/biotech/device/CDMO, likely 8-200 employees, "
@@ -500,7 +500,7 @@ def ai_enrich(client: Anthropic, model: str, record: dict[str, str]) -> dict[str
         "Bayer, Novo Nordisk, etc.) or clearly not a life sciences manufacturer.\n\n"
         "Respond in this exact format:\n"
         "Violation Summary: <2 sentences>\n"
-        "Seal Relevance: <one sentence>\n"
+        "Platform Relevance: <one sentence>\n"
         "ICP Score: <High|Medium|Low|Skip>\n"
         "ICP Reason: <short explanation>"
     )
@@ -512,15 +512,15 @@ def ai_enrich(client: Anthropic, model: str, record: dict[str, str]) -> dict[str
     text = msg.content[0].text.strip()
     result = {
         "violation_summary": "",
-        "seal_relevance": "",
+        "platform_relevance": "",
         "icp_score": "Medium",
         "icp_reason": "",
     }
     for line in text.split("\n"):
         if line.startswith("Violation Summary:"):
             result["violation_summary"] = line.split(":", 1)[1].strip()
-        elif line.startswith("Seal Relevance:"):
-            result["seal_relevance"] = line.split(":", 1)[1].strip()
+        elif line.startswith("Platform Relevance:"):
+            result["platform_relevance"] = line.split(":", 1)[1].strip()
         elif line.startswith("ICP Score:"):
             result["icp_score"] = line.split(":", 1)[1].strip()
         elif line.startswith("ICP Reason:"):
@@ -611,7 +611,7 @@ def run() -> None:
             logger.error("  AI enrichment failed: %s", e)
             enrichment = {
                 "violation_summary": rec["raw_summary"][:200],
-                "seal_relevance": "",
+                "platform_relevance": "",
                 "icp_score": "Medium",
                 "icp_reason": "",
             }
@@ -626,7 +626,7 @@ def run() -> None:
             "finding_type": rec["finding_type"],
             "site_location": rec["site_location"],
             "violation_summary": enrichment["violation_summary"],
-            "seal_relevance": enrichment["seal_relevance"],
+            "platform_relevance": enrichment["platform_relevance"],
             "icp_score": enrichment["icp_score"],
             "icp_reason": enrichment["icp_reason"],
             "source_url": rec["source_url"],

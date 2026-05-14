@@ -1,5 +1,5 @@
 """
-Hot Leads aggregator for Seal lead-gen.
+Hot Leads aggregator for life sciences lead-gen.
 
 Reads all scraper tabs, filters to High ICP rows from the last 24 hours,
 assigns priority, and writes to a single 'Hot Leads' tab sorted by
@@ -62,17 +62,17 @@ TAB_CONFIG: dict[str, dict[str, Any]] = {
     },
     "SEC Funding": {
         "company": "company_name",
-        "summary_fields": ["industry_naics", "amount_raised", "total_offering", "seal_relevance"],
+        "summary_fields": ["industry_naics", "amount_raised", "total_offering", "platform_relevance"],
         "link": "filing_url",
     },
     "Funding Signals": {
         "company": "company_name",
-        "summary_fields": ["round_type", "amount", "lead_investor", "use_of_funds", "seal_relevance"],
+        "summary_fields": ["round_type", "amount", "lead_investor", "use_of_funds", "platform_relevance"],
         "link": "link",
     },
     "Gov Contracts": {
         "company": "company_name",
-        "summary_fields": ["sub_agency", "award_amount", "description", "seal_relevance"],
+        "summary_fields": ["sub_agency", "award_amount", "description", "platform_relevance"],
         "link": "award_url",
     },
     "MHRA EMA Signals": {

@@ -1,5 +1,5 @@
 """
-FDA Inspections scraper for Seal lead-gen.
+FDA Inspections scraper for life sciences lead-gen.
 
 Uses Playwright to load the FDA Inspections Dashboard (Qlik Sense),
 applies filters, then paginates through the table object's HyperCube API
@@ -252,9 +252,9 @@ def ai_enrich(client: Anthropic, model: str, record: dict[str, str]) -> dict[str
     """Assess ICP fit for an inspected company."""
     location = f"{record['city']}, {record['state']}" if record["city"] else "Unknown location"
     prompt = (
-        "You are a sales intelligence analyst for Seal, a life-sciences GxP platform "
+        "You are a sales intelligence analyst for a life-sciences GxP platform company "
         "(eQMS, document control, training management, CAPA, batch records). "
-        "Seal's ICP is: biotech, pharma, med device, or CDMO companies with roughly "
+        "The ICP is: biotech, pharma, med device, or CDMO companies with roughly "
         "8-200 employees.\n\n"
         f"Company: {record['company_name']}\n"
         f"Location: {location}\n"

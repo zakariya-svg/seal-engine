@@ -1,5 +1,5 @@
 """
-RSS News Aggregator for Seal lead-gen.
+RSS News Aggregator for life sciences lead-gen.
 
 Pulls articles from life-sciences RSS feeds, matches against configurable
 trigger keywords, enriches matches with an Anthropic AI summary, dedupes
@@ -133,13 +133,13 @@ def fetch_feed(name: str, url: str) -> list[dict[str, str]]:
 def ai_enrich(client: Anthropic, model: str, article: dict, matched_kw: list[str]) -> dict[str, str]:
     """Use Anthropic API to extract company name, context, and ICP fit."""
     prompt = (
-        "You are a sales intelligence analyst for Seal, a life-sciences GxP platform "
-        "(eQMS, document control, training management, CAPA). Seal's ICP (ideal customer "
-        "profile) is: biotech, pharma, med device, or CDMO companies with roughly 8-200 "
-        "employees.\n\n"
+        "You are a sales intelligence analyst for a life-sciences GxP platform company "
+        "(eQMS, document control, training management, CAPA, batch records). The ICP (ideal "
+        "customer profile) is: biotech, pharma, med device, or CDMO companies with roughly "
+        "8-200 employees.\n\n"
         "Given this news article, extract four things:\n"
         "1. The primary company name mentioned. If unclear, return 'Unknown'.\n"
-        "2. ONE sentence explaining why this company might need Seal's platform.\n"
+        "2. ONE sentence explaining why this company might need a GxP quality platform.\n"
         "3. An ICP fit score: 'High', 'Medium', 'Low', or 'Skip'.\n"
         "   - High: early-stage startups (Series A/B), small biotechs, emerging CDMOs, "
         "small med device companies — likely 8-200 employees.\n"
@@ -147,9 +147,8 @@ def ai_enrich(client: Anthropic, model: str, article: dict, matched_kw: list[str
         "where size can't be determined from the article.\n"
         "   - Low: larger companies (500+ employees) that might still have a relevant "
         "division or subsidiary.\n"
-        "   - Skip: massive pharma/device companies (Pfizer, Lilly, J&J, Roche, Novartis, "
-        "Merck, AbbVie, AstraZeneca, GSK, Sanofi, Amgen, BMS, Gilead, Medtronic, Abbott, "
-        "Stryker, BD, Boston Scientific, etc.) — way too large for Seal.\n"
+        "   - Skip: massive pharma/device companies (e.g. top-20 pharma/device by revenue) "
+        "— way too large for the target ICP.\n"
         "4. A short reason for the ICP score (e.g., 'Series A biotech, likely under 100 "
         "employees' or 'Major pharma, way too large' or 'CDMO expanding, likely in ICP "
         "range').\n\n"

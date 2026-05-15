@@ -10,3 +10,4 @@ feedparser
 beautifulsoup4
 lxml
 playwright
+rapidfuzz

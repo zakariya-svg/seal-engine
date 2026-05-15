@@ -1,0 +1,65 @@
+{
+  "fda_enforcement": [
+    "FDA 483", "FDA warning letter", "CGMP violation", "FDA inspection",
+    "consent decree", "import alert", "FDA observation"
+  ],
+  "eu_uk_regulatory": [
+    "EU MDR", "CE mark", "CE marked", "MHRA inspection", "MHRA findings", "QMSR"
+  ],
+  "quality_system_signals": [
+    "eQMS", "quality management system", "paper based", "paper-based",
+    "batch record", "electronic batch record", "MES implementation",
+    "design controls", "DHF", "design history file", "CAPA backlog",
+    "document control"
+  ],
+  "certifications": [
+    "ISO 13485", "ISO 9001", "GAMP 5", "21 CFR Part 11"
+  ],
+  "funding": [
+    "Series A", "Series B", "Series C", "Series D",
+    "raises", "closes financing", "secured funding", "growth equity"
+  ],
+  "manufacturing_scaling": [
+    "GMP facility", "manufacturing facility", "new facility", "expansion",
+    "broke ground", "manufacturing scale", "fill-finish", "capacity expansion",
+    "commissioning"
+  ],
+  "clinical_milestones": [
+    "Phase II", "Phase III", "Phase 3", "BLA submission", "IND filing",
+    "FDA approval", "fast track", "breakthrough designation"
+  ],
+  "hiring": [
+    "Director of Quality", "VP Quality", "Head of Quality",
+    "validation engineer", "quality assurance manager",
+    "document control", "QA manager", "QC manager"
+  ],
+  "cdmo": [
+    "CDMO", "contract manufacturer", "contract manufacturing",
+    "contract development"
+  ],
+  "cell_and_gene_therapy": [
+    "cell therapy", "gene therapy", "CAR-T", "AAV", "lentivirus",
+    "allogeneic", "autologous"
+  ],
+  "503b_compounding": [
+    "503B", "outsourcing facility", "sterile compounding"
+  ],
+  "competitor_mentions": [
+    "Veeva Vault", "Veeva QMS", "Veeva QualityOne",
+    "MasterControl", "MasterControl QMS",
+    "Greenlight Guru", "greenlight guru",
+    "Qualio", "Qualio QMS",
+    "ZenQMS", "Zen QMS",
+    "AmpleLogic", "Ample Logic",
+    "ETQ Reliance", "ETQ QMS",
+    "Dot Compliance", "DotCompliance"
+  ],
+  "med_device": [
+    "510(k)", "PMA", "De Novo", "Class I recall", "Class II recall",
+    "recalled", "medical device startup"
+  ],
+  "recalls_and_crises": [
+    "drug shortage", "supply disruption", "voluntary recall",
+    "product withdrawal"
+  ]
+}

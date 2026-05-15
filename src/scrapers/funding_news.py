@@ -58,6 +58,24 @@ FUNDING_KEYWORDS = [
     "ipo", "goes public",
 ]
 
+# Competitor mentions — flag articles that mention a known competitor platform
+COMPETITOR_KEYWORDS = [
+    "veeva vault", "veeva qms", "veeva qualityone",
+    "mastercontrol", "mastercontrol qms",
+    "greenlight guru",
+    "qualio",
+    "zenqms", "zen qms",
+    "amplelogic", "ample logic",
+    "etq reliance", "etq qms",
+    "dot compliance", "dotcompliance",
+]
+
+
+def _matches_competitor(text: str) -> list[str]:
+    """Return competitor keywords found in text (case-insensitive)."""
+    text_lower = text.lower()
+    return [kw for kw in COMPETITOR_KEYWORDS if kw in text_lower]
+
 # Google Sheets
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
@@ -68,6 +86,7 @@ COLUMNS = [
     "timestamp", "source", "headline", "link", "company_name",
     "round_type", "amount", "lead_investor", "use_of_funds",
     "platform_relevance", "icp_score", "icp_reason",
+    "competitor_mention",
 ]
 
 
@@ -217,11 +236,12 @@ def run() -> None:
 
             text = f"{article['title']} {article['description']}"
             matched = _matches_funding(text)
+            competitor_matched = _matches_competitor(text)
             if not matched:
                 seen.add(link)  # mark as seen even if no match
                 continue
 
-            candidates.append((feed_name, article, matched))
+            candidates.append((feed_name, article, matched, competitor_matched))
             seen.add(link)
 
     logger.info("Funding matches found: %d", len(candidates))
@@ -238,7 +258,7 @@ def run() -> None:
     ws = get_worksheet()
     signals: list[dict[str, Any]] = []
 
-    for feed_name, article, matched_kw in candidates:
+    for feed_name, article, matched_kw, competitor_kw in candidates:
         logger.info("  %s | %s | [%s]",
                      feed_name, article["title"][:60], ", ".join(matched_kw[:3]))
         try:
@@ -251,6 +271,10 @@ def run() -> None:
                 "icp_score": "Medium", "icp_reason": "",
             }
             time.sleep(2)
+
+        competitor_note = ""
+        if competitor_kw:
+            competitor_note = f"Competitor mention: {', '.join(competitor_kw)}"
 
         row = {
             "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
@@ -265,6 +289,7 @@ def run() -> None:
             "platform_relevance": enrichment["platform_relevance"],
             "icp_score": enrichment["icp_score"],
             "icp_reason": enrichment["icp_reason"],
+            "competitor_mention": competitor_note,
         }
         signals.append(row)
         time.sleep(0.5)

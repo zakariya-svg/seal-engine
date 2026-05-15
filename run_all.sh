@@ -10,6 +10,7 @@ LOG_FILE="logs/run_all_$(date +%Y%m%d_%H%M%S).log"
 mkdir -p logs
 
 scrapers=(
+    "Competitor Intel|src.scrapers.competitor_intel"
     "News|src.scrapers.news_aggregator"
     "FDA Warning Letters|src.scrapers.fda_warning_letters"
     "Clinical Trials|src.scrapers.clinical_trials"
